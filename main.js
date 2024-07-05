@@ -1,8 +1,9 @@
-// var myImg = new Image();
-// myImg.src = 'image.jpg';
-// var context = document.getElementById('canvas').getContext('2d');
-// context.drawImage(myImg, 0, 0);
-// var data = context.getImageData(x, y, 1, 1).data;
+class AsciiIT {
+  static getAscii(normalizedIndex) {
+    let asciiLevels = ":=<v?*fu2PSd#@B";
+    return asciiLevels.charAt(Math.max(Math.min(Math.round(normalizedIndex*15), 14), 0));
+  }
+}
 
 class Screen {
   constructor(canvas, charSize) {
@@ -55,7 +56,7 @@ class Screen {
     this.values = [];
 
     for (let i = 0; i < this.textWidth * this.textHeight; i++) {
-      this.values.push(['-', 'white']);
+      this.values.push(['_', '#000']);
     }
   }
 
@@ -110,7 +111,7 @@ window.addEventListener('keyup', e => {
 
 
 
-const screen = new Screen(document.querySelector('#canvas'), 10);
+const screen = new Screen(document.querySelector('#canvas'), 8);
 
 const world = {
   width: 16,
@@ -193,6 +194,7 @@ function update() {
     }
 
     let hit;
+    let iterationCount = 0;
     for (let i = 0; i < world.width * world.height; i++) {
       if (sideDist.x < sideDist.y) {
         sideDist.x += deltaDist.x;
@@ -205,6 +207,7 @@ function update() {
       }
       if (world.map[mapPos.y] && world.map[mapPos.y][mapPos.x] && world.map[mapPos.y][mapPos.x] > 0) {
         hit = true;
+        iterationCount = i;
         break;
       };
     }
@@ -236,28 +239,41 @@ function update() {
       texPos += wallYStep;
       if (j == screen.textHeight / 2) texY = world.texSize / 2;
       let color = world.textures[texNum][texY][texX];
-      if (!side)
-        screen.set(i, j, ['#', color]);
-      else
-        screen.set(i, j, ['+', color]);
+
+      screen.set(i, j, [AsciiIT.getAscii(Math.round((lineHeight/screen.textHeight)*10)/10-.08), color]);
     }
 
     for (let j = 0; j < lineStart; j++) {
-      screen.set(i, j, ['%', '#00f']);
+      screen.set(i, j, [AsciiIT.getAscii(.8), '#49f']);
     }
 
     for (let j = lineEnd + 1; j < screen.textHeight; j++) {
-      screen.set(i, j, ['%', '#555']);
+      screen.set(i, j, [AsciiIT.getAscii(.8), '#555']);
     }
 
-    // TODO: make proper controls
     camera.angle += mouse.acc.x / 400;
-    camera.pos.x -= Math.cos(camera.angle) * mouse.acc.y / 300;
-    camera.pos.y -= Math.sin(camera.angle) * mouse.acc.y / 300;
+
+    if (keys.KeyW) {
+      camera.pos.x += Math.cos(camera.angle)/3000;
+      camera.pos.y += Math.sin(camera.angle)/3000;
+    }
+    if (keys.KeyS) {
+      camera.pos.x -= Math.cos(camera.angle)/3000;
+      camera.pos.y -= Math.sin(camera.angle)/3000;
+    }
+    if (keys.KeyA) {
+      camera.pos.x += Math.sin(camera.angle)/6000;
+      camera.pos.y -= Math.cos(camera.angle)/6000;
+    }
+    if (keys.KeyD) {
+      camera.pos.x -= Math.sin(camera.angle)/6000;
+      camera.pos.y += Math.cos(camera.angle)/6000;
+    }
+
     mouse.acc.x = 0;
     mouse.acc.y = 0;
-    // TODO: wall collision detection and resolution
   }
+
   screen.render();
 }
 
