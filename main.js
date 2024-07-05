@@ -111,7 +111,7 @@ window.addEventListener('keyup', e => {
 
 
 
-const screen = new Screen(document.querySelector('#canvas'), 8);
+const screen = new Screen(document.querySelector('#canvas'), 10);
 
 const world = {
   width: 16,
