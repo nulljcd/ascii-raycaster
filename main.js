@@ -1,0 +1,264 @@
+// var myImg = new Image();
+// myImg.src = 'image.jpg';
+// var context = document.getElementById('canvas').getContext('2d');
+// context.drawImage(myImg, 0, 0);
+// var data = context.getImageData(x, y, 1, 1).data;
+
+class Screen {
+  constructor(canvas, charSize) {
+    this.canvas;
+    this.ctx;
+    this.charSize = charSize;
+    this.charWidth;
+    this.charHeight;
+    this.textWidth;
+    this.textHeight;
+    this.values;
+
+    this.init(canvas);
+    this.calculateCharScale();
+    this.resize();
+
+    window.onresize = () => this.resize();
+  }
+
+  init(canvas) {
+    this.canvas = canvas;
+    this.ctx = this.canvas.getContext('2d');
+  }
+
+  setFontStyle() {
+    this.ctx.font = `${Math.sqrt(this.canvas.width * this.canvas.height) * (this.charSize/600)}px monospace`;
+  }
+
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.calculateCharScale();
+    this.calculateTextScreenScale();
+    this.buildValues();
+  }
+
+  calculateCharScale() {
+    this.setFontStyle();
+    let measure = this.ctx.measureText('0');
+    this.charWidth = measure.width;
+    this.charHeight = measure.fontBoundingBoxAscent;
+  }
+
+  calculateTextScreenScale() {
+    this.textWidth = Math.floor(this.canvas.width / this.charWidth);
+    this.textHeight = Math.floor(this.canvas.height / this.charHeight);
+  }
+
+  buildValues() {
+    this.values = [];
+
+    for (let i = 0; i < this.textWidth * this.textHeight; i++) {
+      this.values.push(['-', 'white']);
+    }
+  }
+
+  set(x, y, value) {
+    this.values[y * this.textWidth + x] = value;
+  }
+
+  render() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    for (let y = 0; y < this.textHeight; y++) {
+      for (let x = 0; x < this.textWidth; x++) {
+        this.ctx.fillStyle = this.values[y * this.textWidth + x][1];
+        this.ctx.fillText(this.values[y * this.textWidth + x][0], x * this.charWidth, (y + 1) * this.charHeight);
+      }
+    }
+  }
+}
+
+class V2 {
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+
+
+const mouse = {
+  acc: new V2()
+}
+const keys = {};
+window.addEventListener('mousedown', async e => {
+  await canvas.requestPointerLock();
+});
+window.addEventListener('mousedown', e => {
+
+});
+window.addEventListener('mouseup', e => {
+
+});
+window.addEventListener('mousemove', e => {
+  mouse.acc.x = e.movementX;
+  mouse.acc.y = e.movementY;
+});
+window.addEventListener('keydown', e => {
+  if (!keys[e.code])
+    keys[e.code] = true;
+});
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
+});
+
+
+
+const screen = new Screen(document.querySelector('#canvas'), 10);
+
+const world = {
+  width: 16,
+  height: 16,
+  map: [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  ],
+  texSize: 16,
+  textures: [
+    [
+      ['#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#999', '#999', '#999', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#999', '#999', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#999', '#999', '#999', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+      ['#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999'],
+    ]
+  ]
+};
+
+const camera = {
+  pos: new V2(1.5, 1.5),
+  angle: 0
+};
+
+function run() {
+  requestAnimationFrame(run);
+
+  update();
+}
+
+function update() {
+  for (let i = 0; i < screen.textWidth; i++) {
+    let rayAngle = camera.angle - ((screen.canvas.width/1300) / 2) + i * ((screen.canvas.width/1300) / screen.textWidth);
+    let dir = new V2(Math.cos(rayAngle), Math.sin(rayAngle));
+    let mapPos = new V2(Math.floor(camera.pos.x), Math.floor(camera.pos.y));
+    let sideDist = new V2();
+    let deltaDist = new V2(dir.x != 0 ? Math.abs(1 / dir.x) : Infinity, dir.y != 0 ? Math.abs(1 / dir.y) : Infinity);
+    let perpWallDist;
+    let step = new V2();
+    let side = 0;
+    if (dir.x < 0) {
+      step.x = -1;
+      sideDist.x = (camera.pos.x - mapPos.x) * deltaDist.x;
+    } else {
+      step.x = 1;
+      sideDist.x = (mapPos.x + 1 - camera.pos.x) * deltaDist.x;
+    }
+    if (dir.y < 0) {
+      step.y = -1;
+      sideDist.y = (camera.pos.y - mapPos.y) * deltaDist.y;
+    } else {
+      step.y = 1;
+      sideDist.y = (mapPos.y + 1 - camera.pos.y) * deltaDist.y;
+    }
+
+    let hit;
+    for (let i = 0; i < world.width * world.height; i++) {
+      if (sideDist.x < sideDist.y) {
+        sideDist.x += deltaDist.x;
+        mapPos.x += step.x;
+        side = 0;
+      } else {
+        sideDist.y += deltaDist.y;
+        mapPos.y += step.y;
+        side = 1;
+      }
+      if (world.map[mapPos.y] && world.map[mapPos.y][mapPos.x] && world.map[mapPos.y][mapPos.x] > 0) {
+        hit = true;
+        break;
+      };
+    }
+
+    if (!hit) continue;
+
+    let fishEyeFix = Math.cos(camera.angle - rayAngle);
+    let wallX;
+    if (side == 0) {
+      perpWallDist = (sideDist.x - deltaDist.x) * fishEyeFix;
+      wallX = camera.pos.y + (sideDist.x - deltaDist.x) * dir.y;
+    } else {
+      perpWallDist = (sideDist.y - deltaDist.y) * fishEyeFix;
+      wallX = camera.pos.x + (sideDist.y - deltaDist.y) * dir.x;
+    }
+    wallX -= Math.floor(wallX);
+    let texX = world.texSize - 1 - Math.floor(wallX * world.texSize);
+    if (side == 0 && dir.x > 0) texX = world.texSize - texX - 1;
+    if (side == 1 && dir.y < 0) texX = world.texSize - texX - 1;
+    let lineHeight = screen.textWidth / perpWallDist / (screen.canvas.width/1300) / 1.8;
+    let lineStart = Math.max(Math.floor(-lineHeight / 2 + screen.textHeight / 2), 0);
+    let lineEnd = Math.min(Math.floor(lineHeight / 2 + screen.textHeight / 2), screen.textHeight);
+    let texNum = world.map[mapPos.y][mapPos.x] - 1;
+    let wallYStep = 1 * world.texSize / lineHeight;
+    let texPos = (lineStart - screen.textHeight / 2 + lineHeight / 2) * wallYStep;
+
+    for (let j = lineStart; j <= lineEnd; j++) {
+      let texY = Math.min(Math.max(Math.floor(texPos), 0), world.texSize - 1)
+      texPos += wallYStep;
+      if (j == screen.textHeight / 2) texY = world.texSize / 2;
+      let color = world.textures[texNum][texY][texX];
+      if (!side)
+        screen.set(i, j, ['#', color]);
+      else
+        screen.set(i, j, ['+', color]);
+    }
+
+    for (let j = 0; j < lineStart; j++) {
+      screen.set(i, j, ['%', '#00f']);
+    }
+
+    for (let j = lineEnd + 1; j < screen.textHeight; j++) {
+      screen.set(i, j, ['%', '#555']);
+    }
+
+    // TODO: make proper controls
+    camera.angle += mouse.acc.x / 400;
+    camera.pos.x -= Math.cos(camera.angle) * mouse.acc.y / 300;
+    camera.pos.y -= Math.sin(camera.angle) * mouse.acc.y / 300;
+    mouse.acc.x = 0;
+    mouse.acc.y = 0;
+    // TODO: wall collision detection and resolution
+  }
+  screen.render();
+}
+
+run();
