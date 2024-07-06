@@ -1,77 +1,93 @@
-class AsciiIT {
-  static getAscii(normalizedIndex) {
-    let asciiLevels = ":=<v?*fu2PSd#@B";
-    return asciiLevels.charAt(Math.max(Math.min(Math.round(normalizedIndex*15), 14), 0));
-  }
-}
-
 class Screen {
-  constructor(canvas, charSize) {
-    this.canvas;
-    this.ctx;
+  constructor(canvas, aspect, charSize) {
+    this.canvas = canvas;
+    this.aspect = aspect;
     this.charSize = charSize;
     this.charWidth;
     this.charHeight;
-    this.textWidth;
-    this.textHeight;
+    this.width;
+    this.height;
+    this.startX;
+    this.startY;
     this.values;
-
-    this.init(canvas);
-    this.calculateCharScale();
-    this.resize();
-
-    window.onresize = () => this.resize();
-  }
-
-  init(canvas) {
-    this.canvas = canvas;
     this.ctx = this.canvas.getContext('2d');
-  }
-
-  setFontStyle() {
-    this.ctx.font = `${Math.sqrt(this.canvas.width * this.canvas.height) * (this.charSize/600)}px monospace`;
-  }
-
-  resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
-    this.calculateCharScale();
-    this.calculateTextScreenScale();
-    this.buildValues();
-  }
-
-  calculateCharScale() {
-    this.setFontStyle();
-    let measure = this.ctx.measureText('0');
-    this.charWidth = measure.width;
-    this.charHeight = measure.fontBoundingBoxAscent;
-  }
-
-  calculateTextScreenScale() {
-    this.textWidth = Math.floor(this.canvas.width / this.charWidth);
-    this.textHeight = Math.floor(this.canvas.height / this.charHeight);
+    this.resize();
+    window.onresize = () => { this.resize() };
   }
 
   buildValues() {
     this.values = [];
 
-    for (let i = 0; i < this.textWidth * this.textHeight; i++) {
-      this.values.push(['_', '#000']);
+    for (let y = 0; y < this.height; y++) {
+      let row = [];
+      for (let x = 0; x < this.width; x++) {
+        row.push(['', '']);
+      }
+      this.values.push(row);
     }
   }
 
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+
+    let aspectWidth = this.canvas.width / Math.sqrt(this.aspect);
+    let aspectHeight = this.canvas.height * Math.sqrt(this.aspect);
+
+    let side = aspectWidth < aspectHeight;
+
+    this.ctx.font = `${(side ? aspectWidth : aspectHeight) * this.charSize / 600}px monospace`;
+    this.calculateCharScale();
+
+    let scale = side ? this.canvas.width : this.canvas.height;
+
+    let sx = scale / this.charWidth;
+    let sy = scale / this.charHeight;
+
+    if (side)
+      sy /= this.aspect;
+    else
+      sx *= this.aspect;
+
+    this.width = Math.floor(sx);
+    this.height = Math.floor(sy);
+
+    this.startX = (this.canvas.width - this.width*this.charWidth)/this.charWidth/2;
+    this.startY = (this.canvas.height - this.height*this.charHeight)/this.charHeight/2;
+
+    this.buildValues();
+  }
+
+  get(x, y) {
+    return this.values[y][x];
+  }
+
   set(x, y, value) {
-    this.values[y * this.textWidth + x] = value;
+    this.values[y][x] = value;
+  }
+
+  calculateCharScale() {
+    let measure = this.ctx.measureText('0');
+    this.charWidth = measure.width;
+    this.charHeight = measure.fontBoundingBoxAscent;
   }
 
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    for (let y = 0; y < this.textHeight; y++) {
-      for (let x = 0; x < this.textWidth; x++) {
-        this.ctx.fillStyle = this.values[y * this.textWidth + x][1];
-        this.ctx.fillText(this.values[y * this.textWidth + x][0], x * this.charWidth, (y + 1) * this.charHeight);
+
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        this.ctx.fillStyle = this.get(x, y)[1];
+        this.ctx.fillText(this.get(x, y)[0], (x + this.startX) * this.charWidth, (y + this.startY + 1) * this.charHeight);
       }
     }
+  }
+}
+
+class AsciiIT {
+  static getAscii(normalizedIndex) {
+    let asciiLevels = " `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@";
+    return asciiLevels.charAt(Math.max(Math.min(Math.round(normalizedIndex * 92), 91), 0));
   }
 }
 
@@ -111,7 +127,7 @@ window.addEventListener('keyup', e => {
 
 
 
-const screen = new Screen(document.querySelector('#canvas'), 10);
+let screen = new Screen(document.querySelector('#canvas'), 1.6, 10);
 
 const world = {
   width: 16,
@@ -119,12 +135,12 @@ const world = {
   map: [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+    [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1],
     [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -159,7 +175,8 @@ const world = {
 
 const camera = {
   pos: new V2(1.5, 1.5),
-  angle: 0
+  angle: 0,
+  fov: 60 * 0.017453292519943295
 };
 
 function run() {
@@ -169,8 +186,8 @@ function run() {
 }
 
 function update() {
-  for (let i = 0; i < screen.textWidth; i++) {
-    let rayAngle = camera.angle - ((screen.canvas.width/1300) / 2) + i * ((screen.canvas.width/1300) / screen.textWidth);
+  for (let i = 0; i < screen.width; i++) {
+    let rayAngle = camera.angle - (camera.fov / 2) + i * (camera.fov / screen.width);
     let dir = new V2(Math.cos(rayAngle), Math.sin(rayAngle));
     let mapPos = new V2(Math.floor(camera.pos.x), Math.floor(camera.pos.y));
     let sideDist = new V2();
@@ -194,7 +211,6 @@ function update() {
     }
 
     let hit;
-    let iterationCount = 0;
     for (let i = 0; i < world.width * world.height; i++) {
       if (sideDist.x < sideDist.y) {
         sideDist.x += deltaDist.x;
@@ -207,7 +223,6 @@ function update() {
       }
       if (world.map[mapPos.y] && world.map[mapPos.y][mapPos.x] && world.map[mapPos.y][mapPos.x] > 0) {
         hit = true;
-        iterationCount = i;
         break;
       };
     }
@@ -227,47 +242,49 @@ function update() {
     let texX = world.texSize - 1 - Math.floor(wallX * world.texSize);
     if (side == 0 && dir.x > 0) texX = world.texSize - texX - 1;
     if (side == 1 && dir.y < 0) texX = world.texSize - texX - 1;
-    let lineHeight = screen.textWidth / perpWallDist / (screen.canvas.width/1300) / 1.8;
-    let lineStart = Math.max(Math.floor(-lineHeight / 2 + screen.textHeight / 2), 0);
-    let lineEnd = Math.min(Math.floor(lineHeight / 2 + screen.textHeight / 2), screen.textHeight);
+    let lineHeight = screen.width / perpWallDist / camera.fov * (screen.charWidth / screen.charHeight);
+    let lineStart = Math.max(Math.floor(-lineHeight / 2 + screen.height / 2), 0);
+    let lineEnd = Math.min(Math.floor(lineHeight / 2 + screen.height / 2), screen.height - 1);
     let texNum = world.map[mapPos.y][mapPos.x] - 1;
     let wallYStep = 1 * world.texSize / lineHeight;
-    let texPos = (lineStart - screen.textHeight / 2 + lineHeight / 2) * wallYStep;
+    let texPos = (lineStart - screen.height / 2 + lineHeight / 2) * wallYStep;
+
+    let wallLightIntensity = Math.round(Math.sqrt(lineHeight/screen.height-.3)*10)/10;
 
     for (let j = lineStart; j <= lineEnd; j++) {
-      let texY = Math.min(Math.max(Math.floor(texPos), 0), world.texSize - 1)
+      let texY = Math.min(Math.max(Math.floor(texPos), 0), world.texSize - 1);
       texPos += wallYStep;
-      if (j == screen.textHeight / 2) texY = world.texSize / 2;
+      if (j == screen.height / 2) texY = world.texSize / 2;
       let color = world.textures[texNum][texY][texX];
-
-      screen.set(i, j, [AsciiIT.getAscii(Math.round((lineHeight/screen.textHeight)*10)/10-.08), color]);
+      screen.set(i, j, [AsciiIT.getAscii(wallLightIntensity), color]);
     }
 
     for (let j = 0; j < lineStart; j++) {
-      screen.set(i, j, [AsciiIT.getAscii(.8), '#49f']);
+      screen.set(i, j, ['', '']);
     }
 
-    for (let j = lineEnd + 1; j < screen.textHeight; j++) {
-      screen.set(i, j, [AsciiIT.getAscii(.8), '#555']);
+    for (let j = lineEnd + 1; j < screen.height; j++) {
+      let floorLightIntensity = Math.round(((j-screen.height/2)/(screen.height/2)-.2)*10)/10;
+      screen.set(i, j, [AsciiIT.getAscii(floorLightIntensity), '#293']);
     }
 
     camera.angle += mouse.acc.x / 400;
 
     if (keys.KeyW) {
-      camera.pos.x += Math.cos(camera.angle)/3000;
-      camera.pos.y += Math.sin(camera.angle)/3000;
+      camera.pos.x += Math.cos(camera.angle) / 3000;
+      camera.pos.y += Math.sin(camera.angle) / 3000;
     }
     if (keys.KeyS) {
-      camera.pos.x -= Math.cos(camera.angle)/3000;
-      camera.pos.y -= Math.sin(camera.angle)/3000;
+      camera.pos.x -= Math.cos(camera.angle) / 3000;
+      camera.pos.y -= Math.sin(camera.angle) / 3000;
     }
     if (keys.KeyA) {
-      camera.pos.x += Math.sin(camera.angle)/6000;
-      camera.pos.y -= Math.cos(camera.angle)/6000;
+      camera.pos.x += Math.sin(camera.angle) / 6000;
+      camera.pos.y -= Math.cos(camera.angle) / 6000;
     }
     if (keys.KeyD) {
-      camera.pos.x -= Math.sin(camera.angle)/6000;
-      camera.pos.y += Math.cos(camera.angle)/6000;
+      camera.pos.x -= Math.sin(camera.angle) / 6000;
+      camera.pos.y += Math.cos(camera.angle) / 6000;
     }
 
     mouse.acc.x = 0;
