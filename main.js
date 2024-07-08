@@ -10,6 +10,8 @@ class Screen {
     this.startX;
     this.startY;
     this.values;
+    this.font = fontManager.fonts.get('firaCode.ttf');
+
     this.ctx = this.canvas.getContext('2d');
     this.resize();
     window.onresize = () => { this.resize() };
@@ -36,7 +38,7 @@ class Screen {
 
     let side = aspectWidth < aspectHeight;
 
-    this.ctx.font = `${(side ? aspectWidth : aspectHeight) * this.charSize / 600}px monospace`;
+    this.ctx.font = `${(side ? aspectWidth : aspectHeight) * this.charSize / 600}px ${this.font}`;
     this.calculateCharScale();
 
     let scale = side ? this.canvas.width : this.canvas.height;
@@ -52,8 +54,8 @@ class Screen {
     this.width = Math.floor(sx);
     this.height = Math.floor(sy);
 
-    this.startX = (this.canvas.width - this.width*this.charWidth)/this.charWidth/2;
-    this.startY = (this.canvas.height - this.height*this.charHeight)/this.charHeight/2;
+    this.startX = (this.canvas.width - this.width * this.charWidth) / this.charWidth / 2;
+    this.startY = (this.canvas.height - this.height * this.charHeight) / this.charHeight / 2;
 
     this.buildValues();
   }
@@ -84,10 +86,44 @@ class Screen {
   }
 }
 
+class FontManager {
+  constructor() {
+    this.fonts = {
+      toLoad: 0,
+      loaded: 0,
+      onload: undefined,
+      load: function (sources) {
+        const self = this;
+        self.toLoad = sources.length;
+        sources.forEach(i => {
+          const fontName = i.replaceAll('/', '-').replaceAll('.', '-');
+          let fontFace = new FontFace(fontName, `url(${i})`);
+          fontFace.load().then(() => {
+            document.fonts.add(fontFace);
+            self[fontName] = fontName;
+            self.loaded++;
+            if (self.loaded == self.toLoad) {
+              self.toLoad = 0;
+              self.loaded = 0;
+              if (self.onload)
+                self.onload();
+            }
+          });
+        });
+      },
+
+      get: function (source) {
+        return source.replaceAll('/', '-').replaceAll('.', '-');
+      }
+    };
+  }
+}
+
 class AsciiIT {
   static getAscii(normalizedIndex) {
-    let asciiLevels = " .:!=?t*nv2$&0@B";
-    return asciiLevels.charAt(Math.max(Math.min(Math.round(normalizedIndex * 15), 15), 0));
+    let asciiLevels = " .:=!<?/t2y1hb#W";
+    asciiLevels =     " `-,=</)i[J3Zk#8@";
+    return asciiLevels.charAt(Math.max(Math.min(Math.round(normalizedIndex * 16), 16), 0));
   }
 }
 
@@ -127,57 +163,68 @@ window.addEventListener('keyup', e => {
 
 
 
-let screen = new Screen(document.querySelector('#canvas'), 1.6, 10);
+let screen, world, camera;
 
-const world = {
-  width: 16,
-  height: 16,
-  map: [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  ],
-  texSize: 16,
-  textures: [
-    [
-      ['#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#999', '#999', '#999', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#999', '#999', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#999', '#999', '#999', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
-      ['#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999'],
+let fontManager = new FontManager();
+
+fontManager.fonts.load(['firaCode.ttf']);
+fontManager.fonts.onload = init;
+
+function init() {
+  screen = new Screen(document.querySelector('#canvas'), 1.6, 10);
+
+  world = {
+    width: 16,
+    height: 16,
+    map: [
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ],
+    texSize: 16,
+    textures: [
+      [
+        ['#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#999', '#999', '#999', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#999', '#999', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#999', '#f00', '#999', '#f00', '#999', '#999', '#999', '#f00', '#999', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#f00', '#999'],
+        ['#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999', '#999'],
+      ]
     ]
-  ]
-};
+  };
 
-const camera = {
-  pos: new V2(1.5, 1.5),
-  angle: 0,
-  fov: 60 * 0.017453292519943295
-};
+  camera = {
+    pos: new V2(1.5, 1.5),
+    angle: 0,
+    fov: 60 * 0.017453292519943295
+  };
+
+  run();
+}
 
 function run() {
   requestAnimationFrame(run);
@@ -249,7 +296,7 @@ function update() {
     let wallYStep = 1 * world.texSize / lineHeight;
     let texPos = (lineStart - screen.height / 2 + lineHeight / 2) * wallYStep;
 
-    let wallLightIntensity = (lineHeight/screen.height-.3);
+    let wallLightIntensity = (lineHeight / screen.height - .3);
 
     for (let j = lineStart; j <= lineEnd; j++) {
       let texY = Math.min(Math.max(Math.floor(texPos), 0), world.texSize - 1);
@@ -264,27 +311,27 @@ function update() {
     }
 
     for (let j = lineEnd + 1; j < screen.height; j++) {
-      let floorLightIntensity = (j-screen.height/2)/(screen.height/2)-.2;
+      let floorLightIntensity = (j - screen.height / 2) / (screen.height / 2) - .2;
       screen.set(i, j, [AsciiIT.getAscii(floorLightIntensity), '#293']);
     }
 
-    camera.angle += mouse.acc.x / 400;
+    camera.angle += mouse.acc.x / 800;
 
     if (keys.KeyW) {
-      camera.pos.x += Math.cos(camera.angle) / 3000;
-      camera.pos.y += Math.sin(camera.angle) / 3000;
+      camera.pos.x += Math.cos(camera.angle) / 4000;
+      camera.pos.y += Math.sin(camera.angle) / 4000;
     }
     if (keys.KeyS) {
-      camera.pos.x -= Math.cos(camera.angle) / 3000;
-      camera.pos.y -= Math.sin(camera.angle) / 3000;
+      camera.pos.x -= Math.cos(camera.angle) / 4000;
+      camera.pos.y -= Math.sin(camera.angle) / 4000;
     }
     if (keys.KeyA) {
-      camera.pos.x += Math.sin(camera.angle) / 6000;
-      camera.pos.y -= Math.cos(camera.angle) / 6000;
+      camera.pos.x += Math.sin(camera.angle) / 7000;
+      camera.pos.y -= Math.cos(camera.angle) / 7000;
     }
     if (keys.KeyD) {
-      camera.pos.x -= Math.sin(camera.angle) / 6000;
-      camera.pos.y += Math.cos(camera.angle) / 6000;
+      camera.pos.x -= Math.sin(camera.angle) / 7000;
+      camera.pos.y += Math.cos(camera.angle) / 7000;
     }
 
     mouse.acc.x = 0;
@@ -293,5 +340,3 @@ function update() {
 
   screen.render();
 }
-
-run();
