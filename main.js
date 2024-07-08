@@ -86,8 +86,8 @@ class Screen {
 
 class AsciiIT {
   static getAscii(normalizedIndex) {
-    let asciiLevels = " `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@";
-    return asciiLevels.charAt(Math.max(Math.min(Math.round(normalizedIndex * 92), 91), 0));
+    let asciiLevels = " .:!=?t*nv2$&0@B";
+    return asciiLevels.charAt(Math.max(Math.min(Math.round(normalizedIndex * 15), 15), 0));
   }
 }
 
@@ -249,7 +249,7 @@ function update() {
     let wallYStep = 1 * world.texSize / lineHeight;
     let texPos = (lineStart - screen.height / 2 + lineHeight / 2) * wallYStep;
 
-    let wallLightIntensity = Math.round(Math.sqrt(lineHeight/screen.height-.3)*10)/10;
+    let wallLightIntensity = (lineHeight/screen.height-.3);
 
     for (let j = lineStart; j <= lineEnd; j++) {
       let texY = Math.min(Math.max(Math.floor(texPos), 0), world.texSize - 1);
@@ -264,7 +264,7 @@ function update() {
     }
 
     for (let j = lineEnd + 1; j < screen.height; j++) {
-      let floorLightIntensity = Math.round(((j-screen.height/2)/(screen.height/2)-.2)*10)/10;
+      let floorLightIntensity = (j-screen.height/2)/(screen.height/2)-.2;
       screen.set(i, j, [AsciiIT.getAscii(floorLightIntensity), '#293']);
     }
 
