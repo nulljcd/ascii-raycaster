@@ -1,2 +1,2 @@
 # ascii-raycaster
-a one-night project for fun.
+A small project for fun. 
